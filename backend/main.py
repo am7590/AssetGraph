@@ -1,11 +1,20 @@
+import logging
 from fastapi import FastAPI
+from backend.api.routes import submit_graph
 
-app = FastAPI()
+# Basic logging configuration
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="FinRobot 2.0 Backend")
+
+logger.info("Including /api router")
+app.include_router(submit_graph.router, prefix="/api")
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello World"}
+    logger.info("Root endpoint requested")
+    return {"message": "FinRobot 2.0 backend running"}
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q} 
+logger.info("FastAPI app configured.")

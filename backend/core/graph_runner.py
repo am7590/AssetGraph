@@ -1,1 +1,65 @@
- 
+from typing import Dict, Any, Optional, List
+from typing_extensions import TypedDict
+from backend.models.graph_spec import GraphSpec
+from langgraph.graph import StateGraph
+from backend.nodes.load_ticker_data import load_ticker_data_node
+from backend.nodes.preprocess_financials import preprocess_financials_node
+from backend.nodes.summarize_income_statement import summarize_income_statement_node
+from backend.nodes.generate_markdown_report import generate_markdown_report_node
+
+# Define the state schema for the graph
+class GraphState(TypedDict):
+    # Ticker being processed
+    current_ticker: Optional[str]
+    # Raw data fetched for the ticker
+    ticker_data: Optional[Dict[str, Any]]
+    # Processed financial data
+    preprocessed_financials: Optional[Dict[str, Any]]
+    # Text summary of income statement
+    income_summary: Optional[str]
+    # Final markdown report content
+    markdown_report: Optional[str]
+    # List to accumulate errors from nodes
+    errors: List[str]
+
+NODE_TYPE_MAPPING = {
+    "LoadTickerData": load_ticker_data_node,
+    "PreprocessFinancials": preprocess_financials_node,
+    "SummarizeIncomeStatement": summarize_income_statement_node,
+    "GenerateMarkdownReport": generate_markdown_report_node,
+}
+
+async def run_graph(graph_spec: GraphSpec):
+    # Pass the state schema to StateGraph
+    builder = StateGraph(GraphState)
+
+    node_instances = {}
+
+    # Instantiate nodes based on spec
+    for node_spec in graph_spec.nodes:
+        node_factory = NODE_TYPE_MAPPING.get(node_spec.type)
+        if not node_factory:
+            raise ValueError(f"Unknown node type: {node_spec.type}")
+        # Pass params to the node factory function to get the actual node function
+        node_function = node_factory(node_spec.params)
+        # Add node to the graph builder
+        builder.add_node(node_spec.id, node_function)
+
+    # Add edges based on spec
+    for edge_spec in graph_spec.edges:
+        builder.add_edge(edge_spec.from_, edge_spec.to)
+
+    # Set the entry point
+    if graph_spec.nodes:
+        builder.set_entry_point(graph_spec.nodes[0].id)
+    else:
+        raise ValueError("GraphSpec must contain at least one node.")
+
+    # Build the graph
+    graph = builder.compile()
+
+    # Invoke the graph with an initial empty state
+    # Initialize the errors list
+    initial_state = {"errors": []}
+    result = await graph.ainvoke(initial_state)
+    return result
