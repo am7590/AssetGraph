@@ -10,7 +10,7 @@ from backend.nodes.load_balance_sheet import load_balance_sheet_node
 from backend.nodes.load_cash_flow import load_cash_flow_node
 from backend.nodes.preprocess_financials import preprocess_financials_node
 from backend.nodes.summarize_income_statement import summarize_income_statement_node
-from backend.nodes.generate_markdown_report import generate_markdown_report_node
+from backend.nodes.generate_llm_report import generate_llm_report_node
 
 # Define the state schema for the graph
 class GraphState(TypedDict):
@@ -39,7 +39,7 @@ NODE_TYPE_MAPPING = {
     "LoadCashFlow": load_cash_flow_node,
     "PreprocessFinancials": preprocess_financials_node,
     "SummarizeIncomeStatement": summarize_income_statement_node,
-    "GenerateMarkdownReport": generate_markdown_report_node,
+    "GenerateLLMReport": generate_llm_report_node
 }
 
 async def run_graph(graph_spec: GraphSpec):

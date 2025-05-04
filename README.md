@@ -41,19 +41,24 @@ The `--reload` flag automatically restarts the server when code changes are dete
 You can test the `/api/execute-graph` endpoint by sending a POST request with a `GraphSpec` JSON payload.
 
 **Example using `curl`:**
-
-```bash
+```bash 
 curl -X POST http://localhost:8000/api/execute-graph \
 -H "Content-Type: application/json" \
 -d '{
   "nodes": [
-    { "id": "load", "type": "LoadTickerData", "params": { "ticker": "AAPL" } },
+    { "id": "load_profile", "type": "LoadTickerData", "params": { "ticker": "AAPL" } },
+    { "id": "load_income", "type": "LoadIncomeStatement", "params": { "period": "annual", "limit": 3 } },
+    { "id": "load_balance", "type": "LoadBalanceSheet", "params": { "period": "annual", "limit": 3 } },
+    { "id": "load_cashflow", "type": "LoadCashFlow", "params": { "period": "annual", "limit": 3 } },
     { "id": "preprocess", "type": "PreprocessFinancials", "params": {} },
     { "id": "summarize", "type": "SummarizeIncomeStatement", "params": {} },
     { "id": "report", "type": "GenerateMarkdownReport", "params": {} }
   ],
   "edges": [
-    { "from_": "load", "to": "preprocess" },
+    { "from_": "load_profile", "to": "load_income" },
+    { "from_": "load_income", "to": "load_balance" },
+    { "from_": "load_balance", "to": "load_cashflow" },
+   { "from_": "load_cashflow", "to": "preprocess" },
     { "from_": "preprocess", "to": "summarize" },
     { "from_": "summarize", "to": "report" }
   ]
