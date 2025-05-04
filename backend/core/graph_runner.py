@@ -62,11 +62,23 @@ async def run_graph(graph_spec: GraphSpec):
     for edge_spec in graph_spec.edges:
         builder.add_edge(edge_spec.from_, edge_spec.to)
 
-    # Set the entry point
-    if graph_spec.nodes:
-        builder.set_entry_point(graph_spec.nodes[0].id)
-    else:
+    # Identify nodes with no incoming edges to set as entry points
+    all_node_ids = {node.id for node in graph_spec.nodes}
+    target_node_ids = {edge.to for edge in graph_spec.edges}
+    entry_node_ids = list(all_node_ids - target_node_ids)
+
+    if not graph_spec.nodes:
         raise ValueError("GraphSpec must contain at least one node.")
+
+    if not entry_node_ids:
+        # This could happen if the graph is empty (caught above) or cyclic with no clear start
+        raise ValueError("Could not determine entry point(s) for the graph. Check for cycles or ensure at least one node has no incoming edges.")
+
+    # Set the identified entry points
+    builder.set_entry_point(entry_node_ids[0]) # set_entry_point expects a single ID
+    # If multiple entry points were intended, langgraph typically uses conditional edges from START
+    # For now, we'll just use the first identified entry node. 
+    # If multiple are needed, the graph definition pattern might need adjustment.
 
     # Build the graph
     graph = builder.compile()

@@ -2,29 +2,43 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Define required state keys for this node
+NODE_REQUIRES = ["processed_financials"]
+
 def summarize_income_statement_node(params):
     async def node(state: dict) -> dict:
-        logger.info(f"Running SummarizeIncomeStatement with params: {params}")
+        node_name = "SummarizeIncomeStatement"
+        logger.info(f"Running {node_name} with params: {params}")
         current_errors = state.get("errors", [])
-        processed_financials = state.get("processed_financials")
-        summary_update = {}
         new_errors = []
 
-        # --- Validate Input --- 
-        if not processed_financials or not isinstance(processed_financials, dict):
-            error_msg = "Processed financials data not found or invalid in state for summarization."
-            logger.warning(error_msg)
+        # --- Dependency Check ---
+        missing_keys = [key for key in NODE_REQUIRES if key not in state or state[key] is None]
+        if missing_keys:
+            error_msg = f"Missing required state keys: {', '.join(missing_keys)}"
+            logger.error(f"{node_name}: {error_msg}")
+            return {"income_summary": None, "errors": current_errors + [f"{node_name}: {error_msg}"]}
+
+        # --- Get Data from State --- 
+        processed_financials = state["processed_financials"]
+        summary_update = {}
+
+        # --- Validate Input Format/Content --- 
+        if not isinstance(processed_financials, dict):
+            error_msg = "Processed financials data invalid format (expected dict)."
+            logger.warning(f"{node_name}: {error_msg}")
             new_errors.append(error_msg)
             summary_update["income_summary"] = None
-            return {**state, **summary_update, "errors": current_errors + [f"SummarizeIncomeStatement: {e}" for e in new_errors]}
+            return {**summary_update, "errors": current_errors + [f"{node_name}: {e}" for e in new_errors]}
 
         latest_is = processed_financials.get("latest_income_statement")
         if not latest_is or not isinstance(latest_is, dict):
              error_msg = "latest_income_statement not found or invalid in processed_financials."
-             logger.warning(error_msg)
+             logger.warning(f"{node_name}: {error_msg}")
              new_errors.append(error_msg)
              summary_update["income_summary"] = None
-             return {**state, **summary_update, "errors": current_errors + [f"SummarizeIncomeStatement: {e}" for e in new_errors]}
+             # Return only the updates (summary and errors)
+             return {**summary_update, "errors": current_errors + [f"{node_name}: {e}" for e in new_errors]}
 
         # --- Summarization Logic (Placeholder - No LLM yet) --- 
         # TODO: Replace with actual LLM call for summarization
@@ -59,10 +73,10 @@ def summarize_income_statement_node(params):
             summary_update["income_summary"] = None
 
         # --- Return Updated State --- 
+        # Return only the updates (summary and errors)
         return {
-            **state,
             **summary_update,
-            "errors": current_errors + [f"SummarizeIncomeStatement: {e}" for e in new_errors]
+            "errors": current_errors + [f"{node_name}: {e}" for e in new_errors]
         }
 
     return node 

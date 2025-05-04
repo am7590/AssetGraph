@@ -2,27 +2,55 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Define required state keys for this node
+NODE_REQUIRES = ["raw_income_statement", "raw_balance_sheet"] 
+# Optional: "ticker_profile" - handled later
+
 def preprocess_financials_node(params):
     async def node(state: dict) -> dict:
-        logger.info(f"Running PreprocessFinancials with params: {params}")
+        node_name = "PreprocessFinancials"
+        logger.info(f"Running {node_name} with params: {params}")
         current_errors = state.get("errors", [])
-        processed_update = {}
         new_errors = []
 
+        # --- Dependency Check ---
+        missing_keys = [key for key in NODE_REQUIRES if key not in state or state[key] is None]
+        if missing_keys:
+            error_msg = f"Missing required state keys: {', '.join(missing_keys)}"
+            logger.error(f"{node_name}: {error_msg}")
+            # Return existing errors plus the new dependency error
+            return {"errors": current_errors + [f"{node_name}: {error_msg}"]} 
+
         # --- Get Raw Data from State --- 
-        # Relies on previous nodes populating these keys
-        ticker_profile_list = state.get("ticker_profile")
-        raw_income_statement = state.get("raw_income_statement")
-        raw_balance_sheet = state.get("raw_balance_sheet")
+        # We know these exist now due to the check above
+        raw_income_statement = state["raw_income_statement"]
+        raw_balance_sheet = state["raw_balance_sheet"]
+        # Optional data - use .get()
+        ticker_profile_list = state.get("ticker_profile") 
         # raw_cash_flow = state.get("raw_cash_flow") # Not used in this example yet
 
-        # --- Validate Inputs --- 
-        if not raw_income_statement and not raw_balance_sheet:
-            error_msg = "No raw income statement or balance sheet found in state for preprocessing."
-            logger.warning(error_msg)
-            new_errors.append(error_msg)
-            # Return early if no essential data to process
-            return {**state, "processed_financials": None, "errors": current_errors + [f"PreprocessFinancials: {e}" for e in new_errors]}
+        processed_update = {} # Initialize here
+
+        # --- Validate Inputs (Format/Content Validation) --- 
+        # Previous check confirmed presence, now check validity if needed (e.g., type)
+        valid_input = True
+        if not isinstance(raw_income_statement, list) or not raw_income_statement:
+            msg = "Income statement data invalid format (expected non-empty list)."
+            logger.warning(f"{node_name}: {msg}")
+            new_errors.append(msg)
+            valid_input = False
+        
+        if not isinstance(raw_balance_sheet, list) or not raw_balance_sheet:
+            msg = "Balance sheet data invalid format (expected non-empty list)."
+            logger.warning(f"{node_name}: {msg}")
+            new_errors.append(msg)
+            valid_input = False
+
+        if not valid_input:
+            # Return existing errors plus the new validation errors
+            # We don't set processed_financials here
+            return {"errors": current_errors + [f"{node_name}: {e}" for e in new_errors]}
+
 
         # --- Preprocessing Logic (Example) --- 
         # TODO: Implement more sophisticated preprocessing/normalization
@@ -85,10 +113,10 @@ def preprocess_financials_node(params):
             processed_update["processed_financials"] = None # Ensure it's None on error
 
         # --- Return Updated State --- 
+        # Combine the state updates and any new errors
         return {
-            **state,
-            **processed_update,
-            "errors": current_errors + [f"PreprocessFinancials: {e}" for e in new_errors]
+            **processed_update, 
+            "errors": current_errors + [f"{node_name}: {e}" for e in new_errors]
         }
 
     return node 
