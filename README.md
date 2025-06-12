@@ -41,7 +41,8 @@ The `--reload` flag automatically restarts the server when code changes are dete
 You can test the `/api/execute-graph` endpoint by sending a POST request with a `GraphSpec` JSON payload.
 
 **Example using `curl`:**
-```bash 
+
+```bash
 curl -X POST http://localhost:8000/api/execute-graph \
 -H "Content-Type: application/json" \
 -d '{

@@ -4,4 +4,5 @@ httpx
 python-dotenv
 aioredis
 langgraph
-openai 
+openai
+pydantic>=1.8,<2.0 
