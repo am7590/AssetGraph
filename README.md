@@ -52,16 +52,14 @@ curl -X POST http://localhost:8000/api/execute-graph \
     { "id": "load_balance", "type": "LoadBalanceSheet", "params": { "period": "annual", "limit": 3 } },
     { "id": "load_cashflow", "type": "LoadCashFlow", "params": { "period": "annual", "limit": 3 } },
     { "id": "preprocess", "type": "PreprocessFinancials", "params": {} },
-    { "id": "summarize", "type": "SummarizeIncomeStatement", "params": {} },
-    { "id": "report", "type": "GenerateMarkdownReport", "params": {} }
+    { "id": "summarize", "type": "SummarizeIncomeStatement", "params": {} }
   ],
   "edges": [
     { "from_": "load_profile", "to": "load_income" },
     { "from_": "load_income", "to": "load_balance" },
     { "from_": "load_balance", "to": "load_cashflow" },
    { "from_": "load_cashflow", "to": "preprocess" },
-    { "from_": "preprocess", "to": "summarize" },
-    { "from_": "summarize", "to": "report" }
+    { "from_": "preprocess", "to": "summarize" }
   ]
 }'
 ```
